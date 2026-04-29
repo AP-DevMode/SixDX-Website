@@ -1,0 +1,50 @@
+/* ─── DESIGN TOKENS — SixDX ────────────────────────────────────────────────── */
+/* Edit here; all values cascade automatically throughout the project           */
+
+:root {
+  /* ── Colors ─────────────────────────────────────────────────────────────── */
+  --color-bg:           #0a0a0a;
+  --color-fg:           #ffffff;
+  --color-white:        #ffffff;
+  --color-black:        #000000;
+  --color-nav-glass:    rgba(0, 0, 0, 0.16);
+  --color-overlay:      rgba(0, 0, 0, 0.20);
+
+  /* ── Typography ─────────────────────────────────────────────────────────── */
+  --font-display:       'Marund', sans-serif;
+  --font-body:          'HelveticaNeue', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+  /* Type scale — Figma values */
+  --text-nav:           14px;
+  --text-hero:          clamp(2.5rem, 4.2vw, 3.75rem); /* 60px at 1440px */
+
+  /* ── Letter spacing ─────────────────────────────────────────────────────── */
+  --tracking-hero:      -0.04em; /* -2.4px at 60px */
+
+  /* ── Line heights ───────────────────────────────────────────────────────── */
+  --leading-nav:        1.4;
+  --leading-hero:       1.05;
+
+  /* ── Spacing ────────────────────────────────────────────────────────────── */
+  --nav-px:             28px;
+  --nav-py:             16px;
+  --nav-item-px:        16px;
+  --nav-item-py:        4px;
+  --nav-gap:            2px;
+  --nav-logo-h:         56px;
+
+  /* ── Motion ─────────────────────────────────────────────────────────────── */
+  --ease-out-snappy:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-silk:      cubic-bezier(0.25, 0.1, 0.1, 1);
+  --duration-fast:      0.2s;
+  --duration-mid:       0.5s;
+  --duration-slow:      0.9s;
+
+  /* ── Layout ─────────────────────────────────────────────────────────────── */
+  --max-width:          1440px;
+  --hero-h:             100svh;
+
+  /* ── Nav ────────────────────────────────────────────────────────────────── */
+  --nav-blur:           16px;
+  --nav-radius:         2px;
+}
