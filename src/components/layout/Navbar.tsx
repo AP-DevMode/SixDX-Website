@@ -1,13 +1,6 @@
-// ─── NAVBAR — SixDX ──────────────────────────────────────────────────────────
-// Gooey CTA: exact mechanic from gooey-search-main/App.jsx ported to GSAP.
-// The filter wraps BOTH the pill button + arrow circle as siblings.
-// On hover: pill shifts left + widens; circle slides in from right.
-// Their overlap triggers the gooey merge via feGaussianBlur + feColorMatrix.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useLayoutEffect, useRef } from 'react'
-// note: no useState needed — all animation is GSAP-driven
-import { gsap } from '../../animations/gsap.config'
+import PrimaryButton from '../ui/PrimaryButton'
+import { textStyles } from '../../styles/tokens'
 
 // ─── CONTENT — edit freely ────────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -29,17 +22,12 @@ const CTA = { label: 'Get in touch', href: '#contact' }
 //  2px → 0.125rem gap + border-radius
 // ─────────────────────────────────────────────────────────────────────────────
 
-const FONT: React.CSSProperties = {
-  fontFamily:    'HelveticaNeue, "Helvetica Neue", Helvetica, Arial, sans-serif',
-  fontSize:      '0.875rem',   /* 14px */
-  fontWeight:    500,          /* Medium */
-  lineHeight:    1.4,          /* 140% */
-  letterSpacing: '-0.01em',   /* -1% */
-}
+// Navbar uses bodyMedium token — weight 500, -1% tracking, 14px
+const FONT: React.CSSProperties = textStyles.bodyMedium
 
 const GLASS_ITEM: React.CSSProperties = {
   ...FONT,
-  backgroundColor:      'rgba(28, 11, 5, 0.16)',
+  backgroundColor:      'var(--nav-bg, rgba(0,0,0,0.16))',
   backdropFilter:       'blur(2rem)',
   WebkitBackdropFilter: 'blur(2rem)',
   paddingLeft:          '1rem',
@@ -47,8 +35,9 @@ const GLASS_ITEM: React.CSSProperties = {
   paddingTop:           '0.25rem',
   paddingBottom:        '0.25rem',
   borderRadius:         '0.125rem',
-  color:                '#ffffff',
+  color:                'var(--nav-text, #ffffff)',
   whiteSpace:           'nowrap',
+  transition:           'background-color 0.3s ease, color 0.3s ease',
   textDecoration:       'none',
   display:              'flex',
   alignItems:           'center',
@@ -79,126 +68,81 @@ const GooeyFilterDef = () => (
   </svg>
 )
 
-// ─── GOOEY BUTTON ────────────────────────────────────────────────────────────
-// Both pill + arrow must be inside the SAME filter for the gooey merge to work.
-// Problem: the filter's blur (stdDeviation=4) eats ~3.5px from each edge,
-// shrinking the visual height by ~7px total.
-// Fix: make the filter wrapper 7px taller than the nav (34.59px vs 27.59px)
-// then center it. The filter eats 3.5px off each side → visual = 27.59px ✓
-//
-// Pill renders above arrow (zIndex:1) so its text is never obscured by the
-// arrow's white box when the arrow is translated behind the pill.
-// Icon starts at opacity:0 (before paint) so the black SVG never bleeds through.
-// ─────────────────────────────────────────────────────────────────────────────
-function GooeyButton({ label, href }: { label: string; href: string }) {
-  const arrowRef = useRef<HTMLDivElement>(null)
-  const iconRef  = useRef<SVGSVGElement>(null)
-
-  useLayoutEffect(() => {
-    const w = arrowRef.current?.offsetWidth ?? 34
-    gsap.set(arrowRef.current, { x: -w })      /* hide fully behind pill */
-    gsap.set(iconRef.current,  { opacity: 0 }) /* icon hidden until arrow emerges */
-  }, [])
-
-  const onEnter = () => {
-    console.log('ENTER — arrowRef:', arrowRef.current, 'x will go to 0')
-    gsap.to(arrowRef.current, { x: 0,      duration: 0.75, ease: 'power3.out' })
-    gsap.to(iconRef.current,  { opacity: 1, duration: 0.2,  delay: 0.5, ease: 'none' })
-  }
-
-  const onLeave = () => {
-    const w = arrowRef.current?.offsetWidth ?? 34
-    console.log('LEAVE — arrowRef:', arrowRef.current, 'x will go to', -w)
-    gsap.to(iconRef.current,  { opacity: 0, duration: 0.15, ease: 'none' })
-    gsap.to(arrowRef.current, { x: -w,     duration: 0.55, ease: 'power3.inOut', delay: 0.05 })
-  }
-
-  return (
-    // filter wrapper: 7px taller than nav (34.59px) so after blur eats 3.5px/side
-    // the visual result = 27.59px, matching glass nav items.
-    <div
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
-      style={{
-        filter:     'url(#goo-effect)',
-        display:    'flex',
-        alignItems: 'stretch',
-        alignSelf:  'center',
-        height:     '34.59px',
-        marginLeft: '0.125rem',
-        cursor:     'pointer',
-        flexShrink: 0,
-        overflow:   'visible',
-      }}
-    >
-      {/* ── Pill — zIndex:1 so it paints above the arrow's white box ─── */}
-      <a
-        href={href}
-        style={{
-          ...FONT,
-          position:        'relative',
-          zIndex:          1,
-          display:         'flex',
-          alignItems:      'center',
-          justifyContent:  'center',
-          paddingLeft:     '1rem',
-          paddingRight:    '1rem',
-          paddingTop:      '0.25rem',
-          paddingBottom:   '0.25rem',
-          borderRadius:    '0.125rem',
-          backgroundColor: '#ffffff',
-          color:           '#000000',
-          whiteSpace:      'nowrap',
-          textDecoration:  'none',
-        }}
-      >
-        {label}
-      </a>
-
-      {/* ── Arrow — slides from behind pill on hover ──────────────────── */}
-      <div
-        ref={arrowRef}
-        style={{
-          marginLeft:      '0.125rem',
-          aspectRatio:     '1 / 1',
-          borderRadius:    '0.125rem',
-          backgroundColor: '#ffffff',
-          display:         'flex',
-          alignItems:      'center',
-          justifyContent:  'center',
-          flexShrink:      0,
-        }}
-      >
-        <svg
-          ref={iconRef}
-          width="1.25rem"
-          height="1.25rem"
-          viewBox="0 0 20 20"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-        >
-          <path
-            d="M3.75 10H16.25M10.625 4.375L16.25 10L10.625 15.625"
-            stroke="#000000"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-    </div>
-  )
-}
+// GooeyButton is now the shared PrimaryButton component (ui/PrimaryButton.tsx).
+// GooeyFilterDef stays here so the SVG filter is written to the DOM before
+// any PrimaryButton on the page tries to reference it via url(#goo-effect).
 
 // ─── NAVBAR ───────────────────────────────────────────────────────────────────
 export default function Navbar() {
+  const headerRef = useRef<HTMLElement>(null)
+
+  useLayoutEffect(() => {
+    const lightSet = new Set<Element>()
+    const darkSet  = new Set<Element>()
+
+    const apply = () => {
+      // Dark wins whenever any dark section is visible — prevents the footer's
+      // light theme from bleeding in while the contact section is in view.
+      if (darkSet.size > 0) {
+        headerRef.current?.classList.remove('theme-light')
+      } else if (lightSet.size > 0) {
+        headerRef.current?.classList.add('theme-light')
+      } else {
+        headerRef.current?.classList.remove('theme-light')
+      }
+    }
+
+    const lightObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(e => e.isIntersecting ? lightSet.add(e.target) : lightSet.delete(e.target))
+        apply()
+      },
+      { threshold: 0 }
+    )
+
+    const darkObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(e => e.isIntersecting ? darkSet.add(e.target) : darkSet.delete(e.target))
+        apply()
+      },
+      { threshold: 0 }
+    )
+
+    document.querySelectorAll('[data-theme="light"]').forEach(el => lightObserver.observe(el))
+    document.querySelectorAll('[data-theme="dark"]').forEach(el => darkObserver.observe(el))
+
+    return () => {
+      lightObserver.disconnect()
+      darkObserver.disconnect()
+    }
+  }, [])
+
   return (
     <>
+      <style>{`
+        /* ── Dark mode (default) — Figma: Property 1=Dark ─────────────────── */
+        header {
+          --nav-bg:       rgba(0,0,0,0.16);
+          --nav-text:     #ffffff;
+          --nav-bg-hover: rgba(0,0,0,0.30);
+          --cta-bg:       #ffffff;
+          --cta-text:     #000000;
+        }
+        /* ── Light mode — Figma: Property 1=light ─────────────────────────── */
+        header.theme-light {
+          --nav-bg:       rgba(255,255,255,0.16);
+          --nav-text:     #1c0b05;
+          --nav-bg-hover: rgba(255,255,255,0.30);
+          --cta-bg:       #cc4d22;
+          --cta-text:     #ffffff;
+        }
+      `}</style>
+      
       {/* SVG filter — rendered once, referenced by all GooeyButtons on page */}
       <GooeyFilterDef />
 
       <header
+        ref={headerRef}
         aria-label="Site navigation"
         style={{
           position:     'fixed',
@@ -211,7 +155,7 @@ export default function Navbar() {
           width:        '100%',
           maxWidth:     '90rem',     /* 1440px */
           margin:       '0 auto',
-          paddingLeft:  '1.75rem',   /* 28px */
+          paddingLeft:  '1.75rem',
           paddingRight: '1.75rem',
           paddingTop:   '1rem',      /* 16px */
           paddingBottom:'1rem',
@@ -228,11 +172,21 @@ export default function Navbar() {
             marginRight: '6rem',     /* 96px */
           }}
         >
-          <img
-            src="/logo.svg"
-            alt="SixDX"
-            draggable={false}
-            style={{ height: '3.5rem', width: 'auto' }}
+          <div
+            aria-label="SixDX"
+            style={{
+              height: '3.5rem',
+              width: '8.625rem',
+              backgroundColor: 'var(--nav-text, #ffffff)',
+              WebkitMaskImage: 'url(/logo.svg)',
+              maskImage: 'url(/logo.svg)',
+              WebkitMaskSize: 'contain',
+              maskSize: 'contain',
+              WebkitMaskPosition: 'center',
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+              transition: 'background-color 0.3s ease',
+            }}
           />
         </a>
 
@@ -252,17 +206,17 @@ export default function Navbar() {
               href={item.href}
               style={{ ...GLASS_ITEM, flex: '1 0 0' }}
               onMouseEnter={e =>
-                (e.currentTarget.style.backgroundColor = 'rgba(28, 11, 5, 0.30)')
+                (e.currentTarget.style.backgroundColor = 'var(--nav-bg-hover, rgba(0,0,0,0.30))')
               }
               onMouseLeave={e =>
-                (e.currentTarget.style.backgroundColor = 'rgba(28, 11, 5, 0.16)')
+                (e.currentTarget.style.backgroundColor = 'var(--nav-bg, rgba(0,0,0,0.16))')
               }
             >
               {item.label}
             </a>
           ))}
 
-          <GooeyButton label={CTA.label} href={CTA.href} />
+          <PrimaryButton label={CTA.label} href={CTA.href} variant="white" themeAware expanded />
         </nav>
       </header>
     </>

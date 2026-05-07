@@ -8,7 +8,13 @@
   --color-white:        #ffffff;
   --color-black:        #000000;
   --color-nav-glass:    rgba(0, 0, 0, 0.16);
-  --color-overlay:      rgba(0, 0, 0, 0.20);
+  --color-overlay:      rgba(0, 0, 0, 0.60);
+
+  /* Nav Light Theme Colors */
+  --color-nav-bg-light: #F4F3F2;
+  --color-nav-text-light: #1C0B05;
+  --color-cta-bg-light: #CC4D22;
+  --color-cta-text-light: #ffffff;
 
   /* ── Typography ─────────────────────────────────────────────────────────── */
   --font-display:       'Marund', sans-serif;
