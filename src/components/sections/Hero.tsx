@@ -13,6 +13,33 @@ import { gsap, ScrollTrigger } from '../../animations/gsap.config'
 import heroVideo from '../../assets/video/cosmos.mp4'
 import { fonts, colors } from '../../styles/tokens'
 
+// ─── RESPONSIVE TEXT TOKENS (Figma-exact) ────────────────────────────────────
+// Tab H1  : 44px / -1.76px tracking / lh 1    (Figma: -4% of 44px = -1.76px)
+// Mobile/h1: 40px / -0.4px  tracking / lh 1.12 (Figma: -1% of 40px = -0.4px)
+const HERO_RESPONSIVE_CSS = `
+  .hero-text {
+    width:          min(69rem, calc(100vw - 3.5rem));
+    font-size:      clamp(2rem, 4.2vw, 3.75rem);
+    letter-spacing: -0.04em;
+    line-height:    1.05;
+  }
+  @media (max-width: 1199px) and (min-width: 810px) {
+    .hero-text {
+      font-size:      44px;
+      letter-spacing: -1.76px;
+      line-height:    1;
+    }
+  }
+  @media (max-width: 809px) {
+    .hero-text {
+      width:          min(69rem, calc(100vw - 1.5rem));
+      font-size:      40px;
+      letter-spacing: -0.4px;
+      line-height:    1.12;
+    }
+  }
+`
+
 // ─── CONTENT — edit freely ────────────────────────────────────────────────────
 const PARAGRAPHS = [
   'Every critical asset in your facility carries intelligence no manual captures and no schematic fully represents. Until now, it had nowhere to go.',
@@ -22,29 +49,15 @@ const PARAGRAPHS = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── TEXT STYLE — change heading appearance here ─────────────────────────────
-// This is the ONLY place you need to touch to restyle the hero text.
+// fontSize / letterSpacing / lineHeight are set via HERO_RESPONSIVE_CSS so
+// they can be overridden per-breakpoint. Only non-responsive values live here.
 const TEXT_STYLE: React.CSSProperties = {
-  // ← fontFamily from tokens — change fonts.marund in tokens.ts to update everywhere
-  fontFamily:    fonts.marund,
-
-  // Font size — clamp(min, viewport-relative, max)
-  // Matches h1 token scale but with a slightly tighter max for hero balance
-  fontSize:      'clamp(2rem, 4.2vw, 3.75rem)',
-
-  // Letter spacing — negative = tighter, positive = wider
-  letterSpacing: '-0.04em',
-
-  // Line height
-  lineHeight:    1.05,
-
-  fontStyle:     'normal',
-  fontWeight:    'normal',
-  // ← color from tokens — change colors.white in tokens.ts to update everywhere
-  color:         colors.white,
-
-  // ── MAX WIDTH — controls the paragraph line length ────────────────────
-  // '69rem' ≈ 1104px at default browser font size.
-  maxWidth:      '69rem',
+  fontFamily: fonts.marund,
+  fontStyle:  'normal',
+  fontWeight: 'normal',
+  color:      colors.white,
+  // Max-width caps line length on desktop. Narrower screens use calc() below.
+  maxWidth:   '69rem',
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -145,19 +158,22 @@ export default function Hero() {
   const textRefs   = useRef<(HTMLDivElement | null)[]>([])
 
   const state = useRef<{
-    allChars:    HTMLElement[][]
-    mountCtx:    gsap.Context | null
-    scrollCtx:   gsap.Context | null
-    mountTween:  gsap.core.Tween | null
-    resizeTimer: number
-    videoUrl:    string | null
+    allChars:      HTMLElement[][]
+    mountCtx:      gsap.Context | null
+    scrollCtx:     gsap.Context | null
+    mountTween:    gsap.core.Tween | null
+    resizeTimer:   number
+    videoUrl:      string | null
+    // gsap.matchMedia() instance — killed on unmount
+    mediaMatcher:  { kill: () => void } | null
   }>({
-    allChars:    [],
-    mountCtx:    null,
-    scrollCtx:   null,
-    mountTween:  null,
-    resizeTimer: 0,
-    videoUrl:    null,
+    allChars:      [],
+    mountCtx:      null,
+    scrollCtx:     null,
+    mountTween:    null,
+    resizeTimer:   0,
+    videoUrl:      null,
+    mediaMatcher:  null,
   })
 
   useEffect(() => {
@@ -254,59 +270,88 @@ export default function Hero() {
     const init = async () => {
       await document.fonts.ready
 
-      video.pause()
-      video.preload = 'auto'
+      // Split all paragraphs into char spans (needed at all breakpoints)
+      s.allChars = textRefs.current.map((el) => el ? splitTextToChars(el) : [])
 
-      try {
-        const response = await fetch(heroVideo)
-        const blob = await response.blob()
-        const objectUrl = URL.createObjectURL(blob)
-        s.videoUrl = objectUrl
-        video.src = objectUrl
-        video.load()
-      } catch {
-        video.src = heroVideo
-        video.load()
-      }
+      // ── Desktop (≥1200px): full scroll-scrub hero ──────────────────────
+      const mm = gsap.matchMedia()
+      s.mediaMatcher = mm as unknown as { kill: () => void }
 
-      // Split all paragraphs into char spans
-      s.allChars = textRefs.current.map((el) =>
-        el ? splitTextToChars(el) : [],
-      )
+      mm.add('(min-width: 1200px)', () => {
+        // Blob-fetch video for frame-accurate scrubbing
+        video.pause()
+        video.preload = 'auto'
+        video.loop    = false
 
-      // Set initial state
-      s.mountCtx?.revert()
-      s.mountCtx = gsap.context(() => {
+        const loadVideo = async () => {
+          try {
+            const res = await fetch(heroVideo)
+            const blob = await res.blob()
+            s.videoUrl = URL.createObjectURL(blob)
+            video.src = s.videoUrl
+          } catch {
+            video.src = heroVideo
+          }
+          video.load()
+        }
+        void loadVideo()
+
         // All chars start transparent
-        s.allChars.forEach((chars) => {
-          if (chars.length) gsap.set(chars, { opacity: 0 })
+        s.mountCtx?.revert()
+        s.mountCtx = gsap.context(() => {
+          s.allChars.forEach(chars => { if (chars.length) gsap.set(chars, { opacity: 0 }) })
+          // Para 0 fades in on page load
+          if (s.allChars[0]?.length) {
+            s.mountTween = gsap.to(s.allChars[0], {
+              opacity:  1,
+              ease:     ANIM.mountEase,
+              duration: ANIM.mountDuration,
+              stagger:  { amount: ANIM.mountStagger, from: 'start' },
+              delay:    ANIM.mountDelay,
+            })
+          }
+        }, section)
+
+        // Build scroll timeline once video metadata is ready
+        if (video.readyState >= 1 && video.duration > 0) {
+          buildScrollTimeline()
+        } else {
+          video.addEventListener('loadedmetadata', buildScrollTimeline, { once: true })
+        }
+
+        return () => {
+          s.scrollCtx?.revert()
+          s.scrollCtx = null
+          video.removeEventListener('loadedmetadata', buildScrollTimeline)
+          if (s.videoUrl) { URL.revokeObjectURL(s.videoUrl); s.videoUrl = null }
+        }
+      })
+
+      // ── Tablet + Mobile (≤1199px): static hero, video loops ───────────
+      mm.add('(max-width: 1199px)', () => {
+        video.src     = heroVideo
+        video.preload = 'metadata'
+        video.loop    = true
+        void video.play().catch(() => { /* autoplay blocked — poster shows */ })
+
+        // Show only first paragraph; paras 1 & 2 stay hidden
+        s.allChars.forEach((chars, i) => {
+          if (chars.length) gsap.set(chars, { opacity: i === 0 ? 1 : 0 })
         })
 
-        // Para 0 fades in on page load
-        if (s.allChars[0]?.length) {
-          s.mountTween = gsap.to(s.allChars[0], {
-            opacity:  1,
-            ease:     ANIM.mountEase,
-            duration: ANIM.mountDuration,
-            stagger:  { amount: ANIM.mountStagger, from: 'start' },
-            delay:    ANIM.mountDelay,
-          })
+        return () => {
+          video.pause()
+          video.loop = false
         }
-      }, section)
-
-      // Build scroll timeline once video duration is known
-      if (video.readyState >= 1 && video.duration > 0) {
-        buildScrollTimeline()
-      } else {
-        video.addEventListener('loadedmetadata', buildScrollTimeline, { once: true })
-      }
+      })
     }
 
     init()
 
     // ── RESIZE HANDLER ─────────────────────────────────────────────────────
     // Re-split on resize because text may reflow to different line breaks.
-    // Restore a sensible opacity state before rebuilding the scroll timeline.
+    // Only rebuild the scroll timeline on desktop — matchMedia handles the
+    // rest of the breakpoint switching automatically.
     const onResize = () => {
       clearTimeout(s.resizeTimer)
       s.resizeTimer = window.setTimeout(() => {
@@ -317,8 +362,10 @@ export default function Hero() {
         s.allChars.forEach((chars, i) => {
           if (chars.length) gsap.set(chars, { opacity: i === 0 ? 1 : 0 })
         })
-        buildScrollTimeline()
-        ScrollTrigger.refresh()
+        if (window.matchMedia('(min-width: 1200px)').matches) {
+          buildScrollTimeline()
+          ScrollTrigger.refresh()
+        }
       }, 200)
     }
     window.addEventListener('resize', onResize)
@@ -326,6 +373,7 @@ export default function Hero() {
     return () => {
       window.removeEventListener('resize', onResize)
       clearTimeout(s.resizeTimer)
+      s.mediaMatcher?.kill()
       s.mountCtx?.revert()
       s.scrollCtx?.revert()
       if (s.videoUrl) {
@@ -343,6 +391,8 @@ export default function Hero() {
       className="relative w-full overflow-hidden"
       style={{ height: '100svh' }}
     >
+      {/* Responsive text tokens — injected once, applies to all .hero-text divs */}
+      <style>{HERO_RESPONSIVE_CSS}</style>
       {/* ── Background video — currentTime scrubbed by scroll ────────────── */}
       <video
         ref={videoRef}
@@ -386,9 +436,9 @@ export default function Hero() {
           key={idx}
           ref={(el) => { textRefs.current[idx] = el }}
           aria-hidden={idx !== 0}
+          className="hero-text"
           style={{
             ...TEXT_STYLE,
-            width:         `min(${TEXT_STYLE.maxWidth ?? '69rem'}, calc(100vw - 3.5rem))`,
             maxWidth:      'none',
             position:      'absolute',
             top:           '50%',

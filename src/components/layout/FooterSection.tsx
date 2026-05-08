@@ -17,7 +17,6 @@
 import { useRef, useState, type FormEvent, type ChangeEvent } from 'react'
 import { fonts, colors, textStyles } from '../../styles/tokens'
 import PrimaryButton from '../ui/PrimaryButton'
-import MotorSection from '../sections/Motor'
 
 // ── Video ─────────────────────────────────────────────────────────────────────
 // To swap: change the filename here. Video must be in /public/video/
@@ -405,12 +404,6 @@ export default function FooterSection() {
         </div>
 
       </div>{/* end GRADIENT BLOCK */}
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          MOTOR 3D VIEWER — sticky scroll, full width, dark background
-          Lives outside the gradient block so it doesn't stretch the gradient.
-      ══════════════════════════════════════════════════════════════════════ */}
-      <MotorSection />
 
       {/* ══════════════════════════════════════════════════════════════════════
           FOOTER BOTTOM — policies (left) + copyright (right)
